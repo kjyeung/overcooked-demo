@@ -9,13 +9,14 @@ WORKDIR /app
 
 # Install non-chai dependencies
 COPY ./requirements.txt ./requirements.txt
+COPY ../overcooked_ai /overcooked_ai
 RUN pip install -r requirements.txt
 
 # Install eventlet production server if production build
 RUN if [ "$BUILD_ENV" = "production" ] ; then pip install eventlet ; fi
 
 # Clone chai code
-RUN git clone --recursive https://github.com/kjyeung/overcooked_ai.git --branch demo0731 --single-branch /overcooked_ai
+#RUN git clone --recursive https://github.com/kjyeung/overcooked_ai.git --branch demo0731 --single-branch /overcooked_ai
 #RUN git clone --recursive https://github.com/HumanCompatibleAI/overcooked_ai.git --branch $OVERCOOKED_BRANCH --single-branch /overcooked_ai
 
 # Dummy data_dir so things don't break
@@ -32,6 +33,7 @@ COPY ./static ./static
 COPY ./*.py ./
 COPY ./graphics/$GRAPHICS ./static/js/graphics.js
 COPY ./config.json ./config.json
+COPY ./openai_key.txt ./openai_key.txt
 
 
 

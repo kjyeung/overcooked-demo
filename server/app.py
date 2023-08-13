@@ -10,7 +10,7 @@ from threading import Lock
 from utils import ThreadSafeSet, ThreadSafeDict
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, join_room, leave_room, emit
-from game import OvercookedGame, OvercookedTutorial, Game, OvercookedPsiturk
+from game import OvercookedGame, OvercookedTutorial, Game, OvercookedPsiturk, OvercookedGameGPT
 import game
 
 
@@ -85,9 +85,10 @@ USER_ROOMS = ThreadSafeDict()
 
 # Mapping of string game names to corresponding classes
 GAME_NAME_TO_CLS = {
-    "overcooked" : OvercookedGame,
+    "overcooked" : OvercookedGameGPT,
     "tutorial" : OvercookedTutorial,
     "psiturk" : OvercookedPsiturk
+    # "overcookedGPT": OvercookedGameGPT
 }
 
 game._configure(MAX_GAME_LENGTH, AGENT_DIR)

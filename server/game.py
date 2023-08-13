@@ -5,10 +5,11 @@ from time import time
 from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld
 from overcooked_ai_py.mdp.overcooked_env import OvercookedEnv
 from overcooked_ai_py.mdp.actions import Action, Direction
-from overcooked_ai_py.planning.planners import MotionPlanner, NO_COUNTERS_PARAMS
+from overcooked_ai_py.planning.planners import MotionPlanner, NO_COUNTERS_PARAMS, MediumLevelPlanner
 from human_aware_rl.rllib.rllib import load_agent
 import random, os, pickle, json
 import ray
+from GPTAgent import GPTMediumLevelAgent
 
 # Relative path to where all static pre-trained agents are stored on server
 AGENT_DIR = None
@@ -760,6 +761,58 @@ class DummyOvercookedGame(OvercookedGame):
 
     def get_policy(self, *args, **kwargs):
         return DummyAI()
+
+class OvercookedGameGPT(OvercookedGame):
+    """
+    Class that hardcodes the AI to be GPTMediumlevelAgent.
+    """
+    def __init__(self, layouts=["cramped_room"], **kwargs):
+        super(OvercookedGameGPT, self).__init__(layouts, **kwargs)
+
+    def activate(self):
+        super(OvercookedGame, self).activate()
+
+        # Sanity check at start of each game
+        if not self.npc_players.union(self.human_players) == set(self.players):
+            raise ValueError("Inconsistent State")
+
+        # self.curr_layout = self.layouts.pop()
+        # self.mdp = OvercookedGridworld.from_layout_name(self.curr_layout, **self.mdp_params)
+        if self.show_potential:
+            self.mp = MotionPlanner.from_pickle_or_compute(self.mdp, counter_goals=NO_COUNTERS_PARAMS)
+        self.state = self.mdp.get_standard_start_state()
+        if self.show_potential:
+            self.phi = self.mdp.potential_function(self.state, self.mp, gamma=0.99)
+        self.start_time = time()
+        self.curr_tick = 0
+        self.score = 0
+        self.threads = []
+        for npc_policy in self.npc_policies:
+            self.npc_policies[npc_policy].reset()
+            self.npc_state_queues[npc_policy].put(self.state)
+            t = Thread(target=self.npc_policy_consumer, args=(npc_policy,))
+            self.threads.append(t)
+            t.start()
+
+    def get_policy(self, npc_id, idx=0):
+        self.curr_layout = self.layouts.pop()
+        self.mdp = OvercookedGridworld.from_layout_name(self.curr_layout, **self.mdp_params)
+        MLAM_PARAMS = {
+            "start_orientations": False,
+            "wait_allowed": True,
+            "counter_goals": [],
+            "counter_drop": [],
+            "counter_pickup": [],
+            "same_motion_goals": True,
+        }
+        counter_locations = self.mdp.get_counter_locations()
+        MLAM_PARAMS["counter_goals"] = counter_locations
+        MLAM_PARAMS["counter_drop"] = counter_locations
+        MLAM_PARAMS["counter_pickup"] = counter_locations
+        mlam = MediumLevelPlanner.from_pickle_or_compute(self.mdp, MLAM_PARAMS, force_compute=True).ml_action_manager
+        agent = GPTMediumLevelAgent(mlam, self.curr_layout)
+        agent.set_agent_index(idx)
+        return agent
 
 
 class DummyAI():

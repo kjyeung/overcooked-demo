@@ -8,9 +8,11 @@ from overcooked_ai_py.mdp.actions import Action, Direction
 from utils import find_path
 
 cwd = os.getcwd()
-openai_key_file = os.path.join(cwd, "openai_key.txt")
+# openai_key_file = os.path.join(cwd, "openai_key.txt")
+openai_key_file = "./openai_key.txt"
 # layout_prompt_dir = os.path.join(cwd, "prompts/layout")
-PROMPT_DIR = os.path.join(cwd, "prompts")
+# PROMPT_DIR = os.path.join(cwd, "prompts")
+PROMPT_DIR = "./static/prompts"
 
 NAME_TO_ACTION = {
     "NORTH": Direction.NORTH,
